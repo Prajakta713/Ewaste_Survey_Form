@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Your E-Waste Results</title>
+    <link rel="icon" href="{{ url_for('static', filename='favicon.ico') }}" type="image/x-icon">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            --primary: #4CAF50;
+            --primary-dark: #388E3C;
+            --secondary: #FFC107;
+            --light: #f5f5f5;
+            --dark: #212121;
+            --gray: #757575;
+        }
+        
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        
+        body {
+            font-family: 'Poppins', sans-serif;
+            background-color: #f9f9f9;
+            color: var(--dark);
+            line-height: 1.6;
+        }
+        
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        header {
+            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+            color: white;
+            padding: 2rem 0;
+            text-align: center;
+            border-radius: 0 0 20px 20px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            margin-bottom: 2rem;
+        }
+        
+        h1 {
+            font-size: 2.2rem;
+            margin-bottom: 0.5rem;
+        }
+        
+        .result-card {
+            background: white;
+            border-radius: 12px;
+            padding: 2rem;
+            box-shadow: 0 6px 18px rgba(0,0,0,0.08);
+            margin-bottom: 2rem;
+        }
+        
+        .result-item {
+            margin-bottom: 1.5rem;
+            padding: 1.5rem;
+            border-radius: 8px;
+            background-color: var(--light);
+        }
+        
+        .result-value {
+            font-size: 1.8rem;
+            font-weight: 600;
+            color: var(--primary-dark);
+            margin: 0.5rem 0;
+        }
+        
+        .interpretation {
+            background: #e8f5e9;
+            padding: 1rem;
+            border-left: 4px solid var(--primary);
+            margin: 1.5rem 0;
+            font-size: 0.95rem;
+        }
+        
+        .chart-container {
+            position: relative;
+            margin: 2rem auto;
+            height: 300px;
+            width: 100%;
+        }
+        
+        .btn {
+            display: inline-block;
+            background: var(--primary);
+            color: white;
+            text-decoration: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-weight: 600;
+            transition: all 0.3s;
+            text-align: center;
+            width: 100%;
+            margin-top: 1rem;
+        }
+        
+        .btn:hover {
+            background: var(--primary-dark);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+
+        @media (max-width: 600px) {
+            .container {
+                padding: 15px;
+            }
+            header {
+                padding: 1.5rem 0;
+            }
+            h1 {
+                font-size: 1.8rem;
+            }
+            .result-card {
+                padding: 1.5rem;
+            }
+            .chart-container {
+                height: 250px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="container">
+            <h1>Your E-Waste Impact Report</h1>
+            <p>See how your electronics usage compares to national averages</p>
+        </div>
+    </header>
+    
+    <div class="container">
+        <div class="result-card">
+            <!-- Your Personal Result -->
+            <div class="result-item">
+                <h3>Your Annual E-Waste</h3>
+                <div class="result-value">{{ personal }} kg</div>
+                <p>Electronic waste generated per year from your devices</p>
+                
+                <div class="interpretation">
+                    <strong>What this means:</strong>
+                    <ul>
+                        <li>🔹 <strong>Below 2.3 kg</strong>: You're doing better than most Indians!</li>
+                        <li>🔹 <strong>2.3-4 kg</strong>: Typical range for urban dwellers</li>
+                        <li>🔹 <strong>Above 4 kg</strong>: Consider recycling old devices</li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Comparison -->
+            <div class="result-item">
+                <h3>How You Compare</h3>
+                <div class="result-value">{{ contribution_percent }}% of average</div>
+                <p>Your e-waste compared to India's per capita average (2.29 kg/year)</p>
+                
+                <div class="interpretation">
+                    <strong>Understanding your {{ contribution_percent }}% score:</strong>
+                    <ul>
+                        <li>🔸 <strong>100%</strong> = You match the average Indian</li>
+                        <li>🔸 <strong>Below 100%</strong> = You generate less e-waste</li>
+                        <li>🔸 <strong>Above 100%</strong> = You generate more e-waste</li>
+                    </ul>
+                    {% if contribution_percent > 100 %}
+                        <p>You generate <strong>{{ contribution_percent|round(0)|int - 100 }}% more</strong> than average.</p>
+                    {% else %}
+                        <p>You generate <strong>{{ 100 - contribution_percent|round(0)|int }}% less</strong> than average.</p>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Charts -->
+            <div class="chart-container">
+                <canvas id="comparisonChart"></canvas>
+            </div>
+            
+            <div class="chart-container">
+                <canvas id="contributionChart"></canvas>
+            </div>
+
+            <!-- Action Tips -->
+            <div class="result-item">
+                <h3>How to Improve</h3>
+                <div class="interpretation">
+                    <strong>Based on your results:</strong>
+                    <ul>
+                        <li>📱 <strong>Old phones?</strong> Sell or recycle them (stores 0.15kg each!)</li>
+                        <li>💻 <strong>Upgrading soon?</strong> Consider keeping devices longer</li>
+                        <li>🔌 <strong>Unused chargers?</strong> Donate or e-cycle them</li>
+                    </ul>
+                </div>
+            </div>
+            
+            <a href="/" class="btn">Calculate Again</a>
+        </div>
+    </div>
+
+    <script>
+        // Comparison Chart (You vs. National Average)
+        new Chart(
+            document.getElementById('comparisonChart').getContext('2d'),
+            {
+                type: 'bar',
+                data: {
+                    labels: ['You', 'India Average'],
+                    datasets: [{
+                        label: 'kg/year',
+                        data: [{{ personal }}, 2.29],
+                        backgroundColor: [
+                            'rgba(76, 175, 80, 0.7)',
+                            'rgba(117, 117, 117, 0.7)'
+                        ],
+                        borderColor: [
+                            'rgba(76, 175, 80, 1)',
+                            'rgba(117, 117, 117, 1)'
+                        ],
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: 'Your E-Waste vs. National Average'
+                        },
+                        legend: { display: false }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            title: { display: true, text: 'kg/year' }
+                        }
+                    }
+                }
+            }
+        );
+
+        // Contribution Pie Chart
+        new Chart(
+            document.getElementById('contributionChart').getContext('2d'),
+            {
+                type: 'pie',
+                data: {
+                    labels: ['Your Waste', 'Average Indian'],
+                    datasets: [{
+                        data: [{{ personal }}, 2.29],
+                        backgroundColor: [
+                            'rgba(76, 175, 80, 0.7)',
+                            'rgba(255, 193, 7, 0.7)'
+                        ],
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: 'Your Share of Average E-Waste'
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return `${context.label}: ${context.raw} kg (${Math.round(context.percent)}%)`;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        );
+    </script>
+</body>
+</html>
